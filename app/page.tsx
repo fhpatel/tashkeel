@@ -1,18 +1,24 @@
-"use client";
+'use client';
 
-import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Loader2, Upload, Languages, Image as ImageIcon } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Loader2,
+  Upload,
+  Languages,
+  Image as ImageIcon,
+  FileText
+} from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [image, setImage] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>("");
-  const [transcribedText, setTranscribedText] = useState("");
-  const [translatedText, setTranslatedText] = useState("");
+  const [preview, setPreview] = useState<string>('');
+  const [transcribedText, setTranscribedText] = useState('');
+  const [translatedText, setTranslatedText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const { toast } = useToast();
@@ -22,45 +28,52 @@ export default function Home() {
     if (file) {
       setImage(file);
       setPreview(URL.createObjectURL(file));
-      setTranscribedText("");
-      setTranslatedText("");
+      setTranscribedText('');
+      setTranslatedText('');
     }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "image/*": [".png", ".jpg", ".jpeg"],
+      'image/*': ['.png', '.jpg', '.jpeg']
     },
-    maxFiles: 1,
+    maxFiles: 1
   });
+
+  const handleClear = () => {
+    setImage(null);
+    setPreview('');
+    setTranscribedText('');
+    setTranslatedText('');
+  };
 
   const handleTranscribe = async () => {
     if (!image) return;
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append("image", image);
+    formData.append('image', image);
 
     try {
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        body: formData,
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData
       });
 
-      if (!response.ok) throw new Error("Transcription failed");
+      if (!response.ok) throw new Error('Transcription failed');
 
       const data = await response.json();
       setTranscribedText(data.text);
       toast({
-        title: "Success",
-        description: "Text has been transcribed successfully!",
+        title: 'Success',
+        description: 'Text has been transcribed successfully!'
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to transcribe the image",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to transcribe the image',
+        variant: 'destructive'
       });
     } finally {
       setIsLoading(false);
@@ -72,27 +85,27 @@ export default function Home() {
 
     setIsTranslating(true);
     try {
-      const response = await fetch("/api/translate", {
-        method: "POST",
+      const response = await fetch('/api/translate', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ text: transcribedText }),
+        body: JSON.stringify({ text: transcribedText })
       });
 
-      if (!response.ok) throw new Error("Translation failed");
+      if (!response.ok) throw new Error('Translation failed');
 
       const data = await response.json();
       setTranslatedText(data.translation);
       toast({
-        title: "Success",
-        description: "Text has been translated successfully!",
+        title: 'Success',
+        description: 'Text has been translated successfully!'
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to translate the text",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to translate the text',
+        variant: 'destructive'
       });
     } finally {
       setIsTranslating(false);
@@ -103,25 +116,81 @@ export default function Home() {
     <main className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="space-y-8">
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold tracking-tight">Arabic OCR & Translation</h1>
-          <p className="text-muted-foreground">
-            Upload an image containing Arabic text to transcribe and translate it
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight">
+            Project Tashkeel
+          </h1>
+          <div>
+            <p className="text-muted-foreground">
+              Upload an image containing Arabic text to transcribe and translate
+              it
+            </p>
+            <div className="w-full max-w-6xl mx-auto p-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Card className="flex-1">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Upload className="w-4 h-4" />
+                      Step 1: Upload
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">
+                      Upload your image with Arabic writing.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="flex-1">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <FileText className="w-4 h-4" />
+                      Step 2: Transcribe
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">
+                      Click &quot;Transcribe&quot; and AI will write out the
+                      text in the image.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="flex-1">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Languages className="w-4 h-4" />
+                      Step 3: Translate
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">
+                      Click &quot;Translate&quot; to convert the text to
+                      English.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Card className="p-8">
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"
-            }`}
-          >
-            <input {...getInputProps()} />
-            <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-4 text-sm text-muted-foreground">
-              Drag & drop an image here, or click to select
-            </p>
-          </div>
+          {!preview && (
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                isDragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25'
+              }`}
+            >
+              <input {...getInputProps()} />
+              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-4 text-sm text-muted-foreground">
+                Drag & drop an image here, or click to select
+              </p>
+            </div>
+          )}
 
           {preview && (
             <div className="mt-6 space-y-4">
@@ -147,6 +216,9 @@ export default function Home() {
                   </>
                 )}
               </Button>
+              <Button onClick={handleClear} variant="outline">
+                Clear
+              </Button>
             </div>
           )}
         </Card>
@@ -154,7 +226,10 @@ export default function Home() {
         {transcribedText && (
           <Card className="p-8 space-y-4">
             <h2 className="text-2xl font-semibold">Transcribed Text</h2>
-            <p className="text-xl font-arabic leading-relaxed text-right" dir="rtl">
+            <p
+              className="text-xl font-arabic leading-relaxed text-right"
+              dir="rtl"
+            >
               {transcribedText}
             </p>
             <Separator className="my-4" />

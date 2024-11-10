@@ -1,20 +1,38 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { getToken } from "next-auth/jwt"; // You'll need to install next-auth
+import { kv } from "@vercel/kv"; // Or any other database of your choice
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const RATE_LIMIT = 10; // requests per user
+const RATE_LIMIT_WINDOW = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 export async function POST(request: Request) {
   try {
+    // Get user token/session
+    const token = await getToken({ req: { headers: request.headers } as any });
+    const userId =
+      token?.sub || request.headers.get("x-forwarded-for") || "anonymous";
+
+    // Check usage limits
+    const userKey = `usage:${userId}`;
+    const currentUsage = Number(await kv.get(userKey)) || 0;
+
+    if (currentUsage >= RATE_LIMIT) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const formData = await request.formData();
     const image = formData.get("image") as File;
 
     if (!image) {
-      return NextResponse.json(
-        { error: "No image provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
     const buffer = Buffer.from(await image.arrayBuffer());
@@ -42,9 +60,15 @@ export async function POST(request: Request) {
       max_tokens: 500,
     });
 
+    // Increment usage counter
+    await kv.set(userKey, currentUsage + 1, { ex: RATE_LIMIT_WINDOW });
+
     const transcribedText = response.choices[0].message.content;
 
-    return NextResponse.json({ text: transcribedText });
+    return NextResponse.json({
+      text: transcribedText,
+      remainingRequests: RATE_LIMIT - (currentUsage + 1),
+    });
   } catch (error) {
     console.error("Transcription error:", error);
     return NextResponse.json(
